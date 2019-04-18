@@ -6,6 +6,7 @@ OUTPUT: Desired thetas
 """
 
 from math import sqrt
+from scipy.optimize import fsolve
 import numpy as np
 pi = np.pi
 arctan = np.arctan
@@ -42,6 +43,15 @@ class deltaSolver(object):
 		self.a = self.wb - self.up
 		self.b = self.sp/2 - (sqrt(3)/2) * self.wb
 		self.c = self.wp - self.wb/2
+
+		(xx, yy, zz)=self.FK((self.currTheta1, self.currTheta2, self.currTheta3))
+		self.x = xx
+		self.y = yy
+		self.z = zz
+		self.endpt = (self.x, self.y, self.z)
+		self.pos = position(self.x, self.y, self.z)
+		(th1, th2, th3) = self.ik(self.pos)
+		self.thts = (th1, th2, th3)
 
 	def solveTheta1(self, position):
 		#Takes in an argument that is position class
@@ -94,12 +104,62 @@ class deltaSolver(object):
 	def ik(self, goal):
 		return [self.solveTheta1(goal), self.solveTheta2(goal), self.solveTheta3(goal)]
 
+	def FK(self,thts):
+		# Works regardless of length unit. Angle units are in radians. 
+		th1, th2, th3 = thts
+		def simulEqns(inp):
+			(x, y, z) = inp
+			l = self.l
+			L = self.L
+			a = self.a
+			b = self.b
+			c = self.c
+			eq1 = 2*z*L*sin(th1) + x*x + y*y + z*z - l*l + L*L + a*a + 2*y*a + 2*L*(y+a)*cos(th1) 
+			eq2 = 2*z*L*sin(th2) + x*x + y*y + z*z - l*l + L*L + b*b + c*c + 2*x*b + 2*y*c - L*(sqrt(3)*(x+b)+y+c)*cos(th2) 
+			eq3 = 2*z*L*sin(th3) + x*x + y*y + z*z - l*l + L*L + b*b + c*c - 2*x*b + 2*y*c + L*(sqrt(3)*(x-b)-y-c)*cos(th3)
+			return (eq1, eq2, eq3)
+		return fsolve(simulEqns,(0,0,-500))
+
+	def vel(self, inputVec):
+		#inputVec is a vector in meters per second. [xdot, ydot, zdot]
+		
+		a11 = self.x
+		a12 = self.y+self.a + self.L*cos(self.currTheta1)
+		a13 = self.z + self.L*sin(self.currTheta1)
+
+		a21 = 2*(self.x+self.b) - sqrt(3)*self.L*cos(self.currTheta2)
+		a22 = 2*(self.y + self.c) - self.L*cos(self.currTheta2)
+		a23 = 2*(self.z + self.L*sin(self.currTheta2))
+
+		a31 = 2*(self.x - self.b) + sqrt(3)*self.L*cos(self.currTheta3)
+		a32 = 2*(self.y + self.c) - self.L*cos(self.currTheta3)
+		a33 = 2*(self.z + self.L*sin(self.currTheta3))
+
+		A = np.matrix([[a11, a12, a13], 
+					   [a21, a22, a23], 
+					   [a31, a32, a33]])
+
+		b11 = self.L*((self.y + self.a)*sin(self.currTheta1) - self.z*cos(self.currTheta1))
+		b22 = -self.L*((sqrt(3)*(self.x + self.b) + self.y + self.c)*sin(self.currTheta2) + 2*self.z*cos(self.currTheta2))
+		b33 = self.L*((sqrt(3)*(self.x-self.b) - self.y - self.c)*sin(self.currTheta3) - 2*self.z*cos(self.currTheta3))
+		
+		B = np.matrix([[b11, 0, 0], 
+					   [0, b22, 0], 
+					   [0, 0, b33]])
+
+		AB = np.matmul(A,B)
+		thetadot = np.matmul(AB, inputVec)
+
+		#return a vector of the angle velocities. [omega1, omega2, omega3]
+		return thetadot
+
 
 # TEST CODE BELOW
 ds = deltaSolver()
 test = position(0, 0, -0.9)
 print(test.x, test.y, test.z)
 print(ds.ik(test))
+print(ds.vel([1, 1, 1]))
 
 test2 = position(0.3, 0.5, -1.1)
 print(test2.x, test2.y, test2.z)
