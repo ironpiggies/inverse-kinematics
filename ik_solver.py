@@ -20,12 +20,13 @@ cos = np.cos
 RAD2DEG = 180.0/pi
 DEG2RAD = pi/180.0
 
+# POSITIVE MOTION OF THETA MOVES ARM DOWN! This is opposite the ODrive convention!
+
 class position(object):
 	def __init__(self, x, y, z):
 		self.x = x
 		self.y = y
 		self.z = z
-
 
 def rotz(theta):
 	return np.array([[np.cos(theta), -np.sin(theta), 0], [np.sin(theta),  np.cos(theta), 0], [0, 0, 1]])
@@ -38,22 +39,27 @@ def rotx(theta):
 
 
 class deltaSolver(object):
-	# Using dimensions from the Delta Robot paper examples (pg. 16)
-	#def __init__(self, sb = 567, sp = 76, L = 524, l = 1244, h = 131, tht0 = (0, 0, 0)):
-	def __init__(self, sb = 2*109.9852, sp = 109.9852, L = 304.8, l = 609.5144, h = 42.8475, tht0 = (0, 0, 0), swivel_limit = 10*DEG2RAD):
-	# def __init__(self, sb = 0.567, sp = 0.076, L = 0.524, l = 1.244, h = 0.131, tht0 = (0, 0, 0)):
+	# Dimensions are in mm
+	def __init__(self, sb = 219.97, sp = 51.11, L = 304.8, l = 759.57, h = 54.77, tht0 = (0, 0, 0), swivel_limit = 10*DEG2RAD):
 		self.swivel_limit = swivel_limit
 		(self.currTheta1, self.currTheta2, self.currTheta3) = tht0
 		self.vel1 = 0
 		self.vel2 = 0
 		self.vel3 = 0
-
+		#base equilateral triangle side (sb) = 219.97mm (=5in * 3/2 * 2/sqrt(3))
+		#platform equilateral triangle side (sp) = 51.11mm
+		#upper legs length (L) = 304.8mm (=12in)
+		#lower legs parallelogram length (l) = 759.57mm
+		#lower legs parallelogram width (h) = 54.77mm
 		self.sb = sb
 		self.sp = sp
 		self.L = L
 		self.l = l
 		self.h = h
-
+		#planar distance from {0} to near base side (wb)
+		#planar distance from {0} to a base vertex (ub)
+		#planar distance from {p} to a near platform side (wp)
+		#planar distance from {p} to a platform vertex (up)
 		self.wb = (sqrt(3)/6) * self.sb
 		self.ub = (sqrt(3)/3) * self.sb
 		self.wp = (sqrt(3)/6) * self.sp
@@ -71,23 +77,12 @@ class deltaSolver(object):
 		(th1, th2, th3) = self.ik(position(self.x, self.y, self.z))
 		self.thts = (th1, th2, th3)
 		self.fig = plt.figure()
-		# (xx, yy, zz)=self.FK((self.currTheta1, self.currTheta2, self.currTheta3))
-		# self.x = xx
-		# self.y = yy
-		# self.z = zz
-		# self.endpt = (self.x, self.y, self.z)
-		# self.pos = position(self.x, self.y, self.z)
-		# (th1, th2, th3) = self.ik(self.pos)
-		# self.thts = (th1, th2, th3)
-		# self.fig = plt.figure()
 
 		self.plot(position(xx,yy,zz))
 
 	def solveTheta1(self, position):
 		#Takes in an argument that is position class
 		#Solves for Theta1
-		# print('z2', position.z**2)
-		# print('part of g', self.a**2 + self.L**2 + 2*position.y*self.a - self.l**2)
 		E1 = 2*self.L*(position.y+self.a)
 		F1 = 2*position.z*self.L
 		G1 = position.x**2 + position.y**2 + position.z**2 + self.a**2 + self.L**2 + 2*position.y*self.a - self.l**2
@@ -95,7 +90,7 @@ class deltaSolver(object):
 		# Singularity condition because leg is aligned with y-axis
 		if(G1 - E1 == 0):
 			return 0
-		# print('E1', E1, 'F1', F1, 'G1', G1)
+
 		return self.angleSolver(E1, F1, G1, 1)
 
 	def solveTheta2(self, position):
@@ -117,9 +112,7 @@ class deltaSolver(object):
 		t2 = (-F - sqrt(E**2 + F**2 - G**2))/(G - E)
 		thetaPossible1 = 2*arctan(t1)
 		thetaPossible2 = 2*arctan(t2)
-		# print(G)
-		# print(E)
-		# print(thetaID)
+
 		if(thetaID == 1):
 			currTheta = self.currTheta1
 		
@@ -190,6 +183,7 @@ class deltaSolver(object):
 		#return a vector of the angle velocities. [omega1, omega2, omega3]
 		return thetadot
 
+	# All code below only for plotting simulation
 	def plot(self, pos = position(0, 0, -500)):
 		(x, y, z) = (pos.x, pos.y, pos.z)
 		thts = self.ik(pos)
@@ -340,17 +334,6 @@ class deltaSolver(object):
 		return True
 
 
-# TEST CODE BELOW
-# ds = deltaSolver()
-# test = position(0, 0, -0.9)
-# print(test.x, test.y, test.z)
-# print(ds.ik(test))
-# print(ds.vel([1, 1, 1]))
-
-# test2 = position(0.3, 0.5, -1.1)
-# print(test2.x, test2.y, test2.z)
-# print(ds.ik(test2))
-
 def testPlot():
 	kin = deltaSolver()
 	kin.plot()
@@ -367,7 +350,6 @@ def testPlot():
 	time.sleep(1)
 	kin.updatePlot(position(0, 100, kin.z))
 	time.sleep(1)
-	print(kin.z)
 	kin.updatePlot(position(0, 0, kin.z))
 	time.sleep(1)
 
