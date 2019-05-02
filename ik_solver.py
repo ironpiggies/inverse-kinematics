@@ -3,6 +3,16 @@ Closed form solutions to solve the Inverse Kinematics of Delta Robot
 
 INPUT: Goal position
 OUTPUT: Desired thetas
+
+To run this code, 
+1) Create a position object with your x, y, z goal coords
+2) Create a deltaSolver object
+3) Pass in your goal to the ik method of the deltaSolver
+
+Example:
+goal = position(x, y, z)
+ds = deltaSolver()
+ds.ik(goal) <-- Returns [theta1, theta2, theta3] as a list
 """
 
 from math import sqrt
@@ -353,5 +363,16 @@ def testPlot():
 	kin.updatePlot(position(0, 0, kin.z))
 	time.sleep(1)
 
+def testIK():
+	ds = deltaSolver()
+	goal = position(0, 0, -600)
+	goal_list = [goal.x, goal.y, goal.z]
+	print("Goal:", goal_list)
+	print("Desired thetas:", ds.ik(goal))
+
 if __name__ == "__main__":
-	testPlot()
+	# Run testPlot to see plot simulation
+	# Run testIK to see numerical desired thetas
+	
+	# testPlot()
+	testIK()
