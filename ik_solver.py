@@ -90,6 +90,30 @@ class deltaSolver(object):
 
 		self.plot(position(xx,yy,zz))
 
+	def check_workspace(self, goal):
+		# Goal is a position object
+		table_x_min = -1000			# Placeholder numbers for now
+		table_x_max = 1000
+		table_y_min = -1000
+		table_y_max = 1000
+		z_min = -1000
+		z_max = 1000
+
+		x_valid = False
+		y_valid = False
+		z_valid = False
+		
+		if table_x_min <= goal.x <= table_x_max:
+			x_valid = True
+
+		if table_y_min <= goal.y <= table_y_max:
+			y_valid = True
+
+		if z_min <= goal.z <= z_max:
+			z_valid = True
+
+		return x_valid and y_valid and z_valid
+
 	def solveTheta1(self, position):
 		#Takes in an argument that is position class
 		#Solves for Theta1
@@ -118,6 +142,11 @@ class deltaSolver(object):
 		return self.angleSolver(E3, F3, G3, 3)
 
 	def angleSolver(self, E, F, G, thetaID):
+		if (E**2 + F**2 - G**2) < 0:
+			raise ValueError('Square root is negative in angleSolver')
+		if (G - E) == 0:
+			raise ValueError('Dividing by zero in angleSolver')
+			
 		t1 = (-F + sqrt(E**2 + F**2 - G**2))/(G - E)
 		t2 = (-F - sqrt(E**2 + F**2 - G**2))/(G - E)
 		thetaPossible1 = 2*arctan(t1)
@@ -142,7 +171,10 @@ class deltaSolver(object):
 			return thetaPossible2
 
 	def ik(self, goal):
-		return [self.solveTheta1(goal), self.solveTheta2(goal), self.solveTheta3(goal)]
+		if self.check_workspace(goal):
+			return [self.solveTheta1(goal), self.solveTheta2(goal), self.solveTheta3(goal)]
+		else:
+			raise ValueError('Goal is outside of workspace')
 
 	def FK(self,thts):
 		# Works regardless of length unit. Angle units are in radians. 
@@ -374,5 +406,5 @@ if __name__ == "__main__":
 	# Run testPlot to see plot simulation
 	# Run testIK to see numerical desired thetas
 	
-	# testPlot()
-	testIK()
+	testPlot()
+	# testIK()
