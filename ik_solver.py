@@ -92,12 +92,12 @@ class deltaSolver(object):
 
 	def check_workspace(self, goal):
 		# Goal is a position object
-		table_x_min = -1000			# Placeholder numbers for now
-		table_x_max = 1000
-		table_y_min = -1000
-		table_y_max = 1000
+		table_x_min = -620/2			# Placeholder numbers for now
+		table_x_max = 620/2
+		table_y_min = -610/2
+		table_y_max = 610/2
 		z_min = -1000
-		z_max = 1000
+		z_max = 0
 
 		x_valid = False
 		y_valid = False
@@ -146,7 +146,7 @@ class deltaSolver(object):
 			raise ValueError('Square root is negative in angleSolver')
 		if (G - E) == 0:
 			raise ValueError('Dividing by zero in angleSolver')
-			
+
 		t1 = (-F + sqrt(E**2 + F**2 - G**2))/(G - E)
 		t2 = (-F - sqrt(E**2 + F**2 - G**2))/(G - E)
 		thetaPossible1 = 2*arctan(t1)
@@ -219,7 +219,9 @@ class deltaSolver(object):
 					   [0, b22, 0], 
 					   [0, 0, b33]])
 
-		AB = np.matmul(A,B)
+		B_inv = np.linalg.inv(B)
+
+		AB = np.matmul(A,B_inv)
 		thetadot = np.matmul(AB, inputVec)
 
 		#return a vector of the angle velocities. [omega1, omega2, omega3]
@@ -397,14 +399,20 @@ def testPlot():
 
 def testIK():
 	ds = deltaSolver()
-	goal = position(0, 0, -600)
+	goal = position(100, 100, -600)
 	goal_list = [goal.x, goal.y, goal.z]
 	print("Goal:", goal_list)
 	print("Desired thetas:", ds.ik(goal))
+
+def testvel():
+	ds = deltaSolver()
+	desired_vel = [5, 5, 0]
+	print("Desired thetadots:", ds.vel(desired_vel))
 
 if __name__ == "__main__":
 	# Run testPlot to see plot simulation
 	# Run testIK to see numerical desired thetas
 	
-	testPlot()
+	# testPlot()
 	# testIK()
+	testvel()
